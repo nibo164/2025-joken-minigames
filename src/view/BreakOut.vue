@@ -1,7 +1,7 @@
 <script src="https://cjrtnc.leaningtech.com/2.3/loader.js"></script>
 <script>
   cheerpjInit();
-  cheerpjRunJar("game.jar");
+  cheerpjRunJar("block_breaker.jar");
 </script>
 
 <template>
