@@ -3,7 +3,7 @@
     <router-link to="/" class="home-link">
       <button>Homeへ遷移</button>
     </router-link>
-    
+
     <div class="game-container">
       <div id="difficultySelect">
         <h2>難易度を選択</h2>
@@ -31,8 +31,8 @@
           </button>
         </div>
         <div id="difficultyInfo">{{ difficultyInfoText }}</div>
-        </div>
-        
+      </div>
+
       <canvas ref="gameCanvas" width="400" height="500"></canvas>
     </div>
   </div>
@@ -205,9 +205,12 @@ function initGame() {
   paddle = new Paddle(WIDTH / 2 - 50, HEIGHT - 40, 100, 10, "blue");
 
   blocks = [];
-  const rows = 5, cols = 8;
-  const blockWidth = 40, blockHeight = 20;
-  const startX = 20, startY = 40;
+  const rows = 5,
+    cols = 8;
+  const blockWidth = 40,
+    blockHeight = 20;
+  const startX = 20,
+    startY = 40;
   for (let row = 0; row < rows; row++) {
     for (let col = 0; col < cols; col++) {
       const x = startX + col * (blockWidth + 5);
@@ -216,11 +219,11 @@ function initGame() {
     }
   }
 
-  if(currentDifficulty.value === "mystery"){
+  if (currentDifficulty.value === "mystery") {
     const numBlocksToSplit = 5;
     const totalBlocks = blocks.length;
 
-    for(let i = 0; i < numBlocksToSplit; i++){
+    for (let i = 0; i < numBlocksToSplit; i++) {
       const randomIndex = Math.floor(Math.random() * totalBlocks);
 
       blocks[randomIndex].isSplitBlock = true;
@@ -236,63 +239,76 @@ function initGame() {
 
 function gameLoop() {
   if (!gameStarted || !currentDifficulty.value) {
-      requestAnimationFrame(gameLoop);
-      return;
+    requestAnimationFrame(gameLoop);
+    return;
   }
   if (balls.length === 0 && gameStarted) {
-      gameOver.value = true;
+    gameOver.value = true;
   }
   if (gameOver.value || gameClear.value) {
-      draw();
-      requestAnimationFrame(gameLoop);
-      return;
+    draw();
+    requestAnimationFrame(gameLoop);
+    return;
   }
 
   if (leftPressed) {
-      paddle.moveLeft();
-      if (paddle.x < 0) paddle.x = 0;
+    paddle.moveLeft();
+    if (paddle.x < 0) paddle.x = 0;
   }
   if (rightPressed) {
-      paddle.moveRight();
-      if (paddle.x + paddle.width > WIDTH) paddle.x = WIDTH - paddle.width;
+    paddle.moveRight();
+    if (paddle.x + paddle.width > WIDTH) paddle.x = WIDTH - paddle.width;
   }
 
   const newBalls = [];
 
-  balls.forEach(ball => {
-    
+  balls.forEach((ball) => {
     if (!waitingForStart.value) {
-        ball.update(WIDTH, HEIGHT);
+      ball.update(WIDTH, HEIGHT);
     }
 
     if (
-        !waitingForStart.value &&
-        intersects(ball.getBounds(), paddle.getBounds())
+      !waitingForStart.value &&
+      intersects(ball.getBounds(), paddle.getBounds())
     ) {
-        const ballCenterX = ball.x + ball.diameter / 2;
-        const paddleCenterX = paddle.x + paddle.width / 2;
-        const hitPos = (ballCenterX - paddleCenterX) / (paddle.width / 2);
-        ball.dx = hitPos * 4;
-        ball.dy = -Math.abs(ball.dy);
+      const ballCenterX = ball.x + ball.diameter / 2;
+      const paddleCenterX = paddle.x + paddle.width / 2;
+      const hitPos = (ballCenterX - paddleCenterX) / (paddle.width / 2);
+      ball.dx = hitPos * 4;
+      ball.dy = -Math.abs(ball.dy);
     }
 
     if (!waitingForStart.value) {
       for (let i = 0; i < blocks.length; i++) {
         let block = blocks[i];
-        if (!block.destroyed && intersects(ball.getBounds(), block.getBounds())) {
-          
+        if (
+          !block.destroyed &&
+          intersects(ball.getBounds(), block.getBounds())
+        ) {
           if (currentDifficulty.value === "mystery" && block.isSplitBlock) {
             const baseSpeed = Math.sqrt(ball.dx * ball.dx + ball.dy * ball.dy);
             const ballDiameter = ball.diameter;
 
-            newBalls.push(new Ball(
-                ball.x, ball.y, ballDiameter, 
-                -baseSpeed * 0.7, baseSpeed * 0.7, "white"
-            ));
-            newBalls.push(new Ball(
-                ball.x, ball.y, ballDiameter, 
-                baseSpeed * 0.7, baseSpeed * 0.7, "white" 
-            ));
+            newBalls.push(
+              new Ball(
+                ball.x,
+                ball.y,
+                ballDiameter,
+                -baseSpeed * 0.7,
+                baseSpeed * 0.7,
+                "white"
+              )
+            );
+            newBalls.push(
+              new Ball(
+                ball.x,
+                ball.y,
+                ballDiameter,
+                baseSpeed * 0.7,
+                baseSpeed * 0.7,
+                "white"
+              )
+            );
           }
 
           block.destroyed = true;
@@ -309,15 +325,21 @@ function gameLoop() {
               nextSpeedUpScore += 100;
             }
           } else if (currentDifficulty.value === "mystery") {
-              ball.setRandomSpeed(); 
+            ball.setRandomSpeed();
           }
 
           const ballRect = ball.getBounds();
           const blockRect = block.getBounds();
           const interLeft = Math.max(ballRect.x, blockRect.x);
-          const interRight = Math.min(ballRect.x + ballRect.width, blockRect.x + blockRect.width);
+          const interRight = Math.min(
+            ballRect.x + ballRect.width,
+            blockRect.x + blockRect.width
+          );
           const interTop = Math.max(ballRect.y, blockRect.y);
-          const interBottom = Math.min(ballRect.y + ballRect.height, blockRect.y + blockRect.height);
+          const interBottom = Math.min(
+            ballRect.y + ballRect.height,
+            blockRect.y + blockRect.height
+          );
           const interWidth = interRight - interLeft;
           const interHeight = interBottom - interTop;
 
@@ -336,9 +358,8 @@ function gameLoop() {
     }
   });
 
-  
   balls = newBalls;
-  
+
   if (blocks.every((b) => b.destroyed)) {
     gameClear.value = true;
   }
@@ -353,7 +374,7 @@ function draw() {
   ctx.fillRect(0, 0, WIDTH, HEIGHT);
 
   if (paddle) {
-    balls.forEach(ball => ball.draw(ctx));
+    balls.forEach((ball) => ball.draw(ctx));
     paddle.draw(ctx);
   }
   blocks.forEach((block) => block.draw(ctx));
@@ -399,7 +420,6 @@ function draw() {
   }
 }
 
-
 function handleKeyDown(e) {
   if (e.key === "ArrowLeft") leftPressed = true;
   if (e.key === "ArrowRight") rightPressed = true;
@@ -440,7 +460,7 @@ onUnmounted(() => {
   display: flex;
   align-items: flex-start;
   min-height: 100vh;
-  padding: 20px; 
+  padding: 20px;
   background: #1a1a1a;
   font-family: "DotGothic16";
 }
@@ -448,7 +468,7 @@ onUnmounted(() => {
 .home-link {
   margin-right: 50px;
   margin-top: 15px;
-  display: inline-block; /
+  display: inline-block;
 }
 
 .game-container {

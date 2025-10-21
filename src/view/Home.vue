@@ -8,7 +8,13 @@ const router = useRouter();
 
 //ボタンに対応するルートの配列を定義
 //ゲームが増えたらここにルート追加
-const buttonRoutes = ["/EvationGame", "/BreakOut", "/MotionGame"];
+const buttonRoutes = [
+  "/EvationGame",
+  "/BreakOut",
+  "/MotionGame",
+  "/PuzzleGame",
+  "/BlackJack",
+];
 const buttonCount = buttonRoutes.length;
 
 //キーボードイベントのハンドラを定義
