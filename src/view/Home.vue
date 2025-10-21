@@ -8,7 +8,7 @@ const router = useRouter();
 
 //ボタンに対応するルートの配列を定義
 //ゲームが増えたらここにルート追加
-const buttonRoutes = ["/EvationGame", "/BreakOut"];
+const buttonRoutes = ["/EvationGame", "/BreakOut", "/MotionGame"];
 const buttonCount = buttonRoutes.length;
 
 //キーボードイベントのハンドラを定義
@@ -64,6 +64,14 @@ onUnmounted(() => {
         :class="{ selected: selectedIndex === 1 }"
       >
         ブロック崩し
+      </button>
+    </router-link>
+    <router-link to="/MotionGame">
+      <button
+        id="home_button_to_game"
+        :class="{ selected: selectedIndex === 2 }"
+      >
+        モーショントラッキング 避けゲー
       </button>
     </router-link>
   </div>

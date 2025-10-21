@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from "vue-router";
 import Home from "../view/Home.vue";
 import EvationGame from "../view/EvationGame.vue";
 import BreakOut from "../view/BreakOut.vue";
+import MotionGame from "../view/MotionGame.vue";
 
 const routes = [
   {
@@ -18,6 +19,11 @@ const routes = [
     path: "/BreakOut",
     name: "BreakOut",
     component: BreakOut,
+  },
+  {
+    path: "/MotionGame",
+    name: "MotionGame",
+    component: MotionGame,
   },
 ];
 
