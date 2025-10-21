@@ -29,7 +29,12 @@ const routes = [
   {
     path: "/PuzzleGame",
     name: "PuzzleGame",
-    component:PuzzleGame,
+    component: PuzzleGame,
+  },
+  {
+    path: "/BlackJack",
+    name: "BlackJack",
+    component: BlackJack,
   },
 ];
 
