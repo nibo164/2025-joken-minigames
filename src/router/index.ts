@@ -4,6 +4,7 @@ import EvationGame from "../view/EvationGame.vue";
 import BreakOut from "../view/BreakOut.vue";
 import MotionGame from "../view/MotionGame.vue";
 import PuzzleGame from "../view/PuzzleGame.vue";
+import BlackJack from "../view/BlackJack.vue";
 
 const routes = [
   {
