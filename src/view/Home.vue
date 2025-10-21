@@ -74,6 +74,16 @@ onUnmounted(() => {
         モーショントラッキング 避けゲー
       </button>
     </router-link>
+    <router-link to="/PuzzleGame">
+      <button
+        id="home_button_to_game"
+        :class="{ selected: selectedIndex === 3 }"
+      >
+        パズルゲー
+      </button>
+    </router-link>
+
+    
   </div>
 </template>
 
