@@ -82,8 +82,14 @@ onUnmounted(() => {
         パズルゲー
       </button>
     </router-link>
-
-    
+    <router-link to="/BlackJack">
+      <button
+        id="home_button_to_game"
+        :class="{ selected: selectedIndex === 4 }"
+      >
+        ブラックジャック
+      </button>
+    </router-link>
   </div>
 </template>
 
