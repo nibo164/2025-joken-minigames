@@ -1,17 +1,15 @@
 <template>
-<router-link to="/">
-    <button>Homeへ遷移</button>
-  </router-link>
   <div>
     <h1>Blackjack</h1>
 
     <div class="hand">
-      <strong>ディーラー</strong>
+      <strong><span class = "dealer">ディーラー</span></strong>
       <div class="cards">
         <div
           v-for="(c, i) in dealer"
           :key="i"
           class="card"
+          :class="{ 'red-suit': !dealerHidden && ['♥', '♦'].includes(c.suit) }"
         >
           {{ i === 0 && dealerHidden ? '？' : cardLabel(c) }}
         </div>
@@ -20,12 +18,13 @@
     </div>
 
     <div class="hand">
-      <strong>プレイヤー</strong>
+      <strong><span class = "player">プレイヤー</span></strong>
       <div class="cards">
         <div
           v-for="(c, i) in player"
           :key="i"
           class="card"
+          :class="{ 'red-suit': ['♥', '♦'].includes(c.suit) }"
         >
           {{ cardLabel(c) }}
         </div>
@@ -42,6 +41,35 @@
 
     <div id="result">{{ result }}</div>
   </div>
+
+  <div id="rule">
+    <h2>ルール</h2>
+    <h3>遊び方</h3>
+    <p>
+      ブラックジャックは、プレイヤーとディーラーが互いに山札を引き合い、手札の合計を21に近づけるゲームです。<br>
+      手札の合計が21を超えた時点で負けになります。<br>
+      ディーラーは手札の合計が17以上になるように引くことを繰り返します。<br>
+      プレイヤーはヒット(1枚引く)かスタンド(勝負)を選択できます。<br>
+      最終的に手札の合計が21に近い方が勝ちとなります。<br>
+    </p>
+    <h3>手札の点数について</h3>
+    <p>
+      A     --> 1 or 11<br>
+      J,Q,K --> 10<br>
+      2 ~ 9 --> 2 ~ 9<br>
+    </p>
+    <h3>用語の説明</h3>
+    <p>
+      ディール：新しくゲームを始める。<br>
+      ヒット　：山札から1枚引く。<br>
+      スタンド：現在の手札でディーラーと勝負する。<br>
+      リセット：初期状態に戻す。<br>
+    </p>
+  </div>
+
+  <router-link to="/">
+    <button>Homeへ遷移</button>
+  </router-link>
 </template>
 
 <script setup>
@@ -209,6 +237,14 @@ h1 {
   box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
 
+.dealer {
+  color: #ed6e6eff;
+}
+
+.player {
+  color: #7494d4ff;
+}
+
 .cards {
   display: flex;
   gap: 6px;
@@ -225,6 +261,10 @@ h1 {
   background: #fff;
 }
 
+.red-suit {
+  color: red !important; /* !important は既存の .card スタイルより優先させるため */
+}
+
 #controls {
   margin-top: 10px;
   text-align: center;
@@ -232,17 +272,17 @@ h1 {
 
 button {
   padding: 8px 12px;
-  margin: 4px;
+  margin: 8px;
   border: none;
   border-radius: 6px;
-  background: #0078d7;
+  background: #afde52ff;
   color: white;
   cursor: pointer;
   transition: 0.2s;
 }
 
 button:hover:not(:disabled) {
-  background: #005fa3;
+  background: #afde52ff;
 }
 
 button:disabled {
@@ -251,9 +291,16 @@ button:disabled {
 }
 
 #result {
-  margin-top: 12px;
+  margin-top: 15px;
   font-weight: 700;
   text-align: center;
-  font-size: 1.1em;
+  font-size: 1.4em;
+  margin-bottom: 15px;
+}
+
+#rule {
+  text-align: left;
+  padding: 20px;
+  border: 1px solid #ccc;
 }
 </style>
