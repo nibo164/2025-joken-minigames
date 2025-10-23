@@ -1,7 +1,8 @@
 <template>
-  <router-link to="/">
+  <router-link to="/" class="home-link">
     <button>Homeへ遷移</button>
   </router-link>
+
   <div class="game-container">
     <canvas id="gameCanvas" ref="gameCanvas"></canvas>
   </div>
@@ -28,6 +29,7 @@ export default {
     const SPECIAL_ATTACK_DURATION = 3000; // 必殺技の継続時間 (3秒)
 
     // --- リアクティブな状態と通常の変数 ---
+    // Vueのリアクティブシステムにより、これらの変更が自動的に画面に反映されます。
     let playerX = ref(0);
     let playerY = ref(0);
     let playerHP = ref(MAX_HP);
@@ -61,6 +63,7 @@ export default {
 
     const resizeCanvas = () => {
       if (!canvas) return;
+      // ウィンドウサイズに合わせてキャンバスのサイズをリサイズ
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
       if (!gameStarted.value) {
@@ -109,6 +112,7 @@ export default {
         downPressed = true;
       } else if (e.key === ' ' || e.key === 'Spacebar') {
         if (!gameStarted.value) {
+          // ゲーム開始
           gameStarted.value = true;
           const now = Date.now();
           startTime = now;
@@ -117,6 +121,7 @@ export default {
           rightPressed = false;
           leftPressed = false;
         } else if (gameOver.value) {
+          // ゲームリスタート
           resetGame();
           gameStarted.value = true;
           const now = Date.now();
@@ -167,6 +172,7 @@ export default {
       const currentTime = Date.now();
       const isInvulnerable = currentTime - lastHitTime < INVULNERABILITY_TIME;
 
+      // 無敵中は点滅
       if (isInvulnerable && Math.floor(currentTime / 100) % 2 === 0) {
         ctx.fillStyle = 'lightblue';
       } else {
@@ -221,7 +227,8 @@ export default {
         ctx.fillStyle = 'red';
       }
 
-      ctx.fillText('必殺技カウント: ' + countdownText, canvas.width / 2, 30);
+      // Homeへ遷移ボタンと重なるため、Y座標を少し下げます
+      ctx.fillText('必殺技カウント: ' + countdownText, canvas.width / 2, 60);
     };
 
     const drawStartScreen = () => {
@@ -422,6 +429,7 @@ export default {
           (BASE_ENEMY_SPEED + Math.random() * 3) * difficultyMultiplier;
 
         if (rand < 0.15) {
+          // ボム敵の出現
           enemyData = {
             x: Math.random() * (canvas.width - 50),
             y: -50,
@@ -433,6 +441,7 @@ export default {
             hasExploded: false,
           };
         } else {
+          // 通常敵の出現 (上、左、右のいずれか)
           if (spawnSide === 0) {
             enemyData = {
               x: Math.random() * (canvas.width - ENEMY_SIZE),
@@ -474,6 +483,7 @@ export default {
 
         const currentEnemy = enemies.value[i];
 
+        // ボムの爆発処理
         if (
           currentEnemy.type === 'bomb' &&
           !currentEnemy.hasExploded &&
@@ -497,6 +507,7 @@ export default {
           continue;
         }
 
+        // 画面外に出た敵を削除
         const isOutOfBoundsY =
           currentEnemy.y > canvas.height || currentEnemy.y < -currentEnemy.size;
         const isOutOfBoundsX =
@@ -511,6 +522,7 @@ export default {
 
     const checkCollision = () => {
       const currentTime = Date.now();
+      // 無敵時間チェック
       if (currentTime - lastHitTime < INVULNERABILITY_TIME) {
         return;
       }
@@ -529,6 +541,7 @@ export default {
           if (playerHP.value <= 0) {
             gameOver.value = true;
             finalTimeText = formatTime(elapsedTime);
+            // ゲームオーバーでアニメーションループを停止
             cancelAnimationFrame(animationFrameId);
           }
           break; // 衝突したらループを抜ける (1フレーム1ヒットを想定)
@@ -572,18 +585,21 @@ export default {
       resetGame();
       gameLoop();
 
+      // イベントリスナーの設定
       document.addEventListener('keydown', keyDownHandler, false);
       document.addEventListener('keyup', keyUpHandler, false);
       window.addEventListener('resize', resizeCanvas);
     });
 
     onUnmounted(() => {
+      // コンポーネント破棄時のクリーンアップ
       cancelAnimationFrame(animationFrameId);
       document.removeEventListener('keydown', keyDownHandler);
       document.removeEventListener('keyup', keyUpHandler);
       window.removeEventListener('resize', resizeCanvas);
     });
 
+    // テンプレートで利用するリアクティブ変数やメソッドを返します
     return {
       gameCanvas,
     };
@@ -592,14 +608,27 @@ export default {
 </script>
 
 <style scoped>
+/*
+  【スクロールバー対策】
+  このコンポーネントが全画面を占有するように設定されています。
+  ただし、最終的にスクロールバーを完全に消すには、
+  アプリケーション全体（html, body）のCSSで「margin: 0; overflow: hidden;」を設定する必要があります。
+*/
 .game-container {
+  /* ページ全体を覆う設定 */
   margin: 0;
   overflow: hidden;
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 100vh;
+  height: 100vh; /* Viewportの高さ100% */
+  width: 100vw; /* Viewportの幅100% */
   background-color: #f0f0f0;
+  /* ゲームコンテナの兄弟要素を考慮し、配置方法を調整 */
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 1; /* Homeボタンよりも手前に来ないよう低いZ-index */
 }
 
 canvas {
@@ -608,4 +637,26 @@ canvas {
   width: 100vw;
   height: 100vh;
 }
+
+.home-link {
+  /* Homeへ遷移ボタンをゲーム画面の最前面に固定 */
+  position: fixed;
+  top: 10px;
+  left: 10px;
+  z-index: 10; /* ゲーム画面より手前に表示 */
+}
+
+/*
+  【重要】グローバルなスタイル設定（このコンポーネント外で適用してください）
+  VueアプリのルートCSSファイルなどで以下を設定してください。
+  これがないと、ブラウザ標準のマージンやパディングでスクロールバーが出ることがあります。
+*/
+/*
+html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    overflow: hidden;
+}
+*/
 </style>
