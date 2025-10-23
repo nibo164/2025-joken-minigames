@@ -1,38 +1,39 @@
 <template>
   <div class="main-content">
-    <router-link to="/" class="home-link">
-      <button>Homeへ遷移</button>
-    </router-link>
-    
-    <div class="game-container">
+    <div class="left-sidebar">
+      <router-link to="/" class="home-link">
+        <button>Homeへ遷移</button>
+      </router-link>
+
       <div id="difficultySelect">
-        <h2>難易度を選択</h2>
-        <div class="difficulty-buttons">
-          <button
-            class="difficulty-btn normal"
-            :class="{ selected: currentDifficulty === 'normal' }"
-            @click="selectDifficulty('normal')"
-          >
-            Normal
-          </button>
-          <button
-            class="difficulty-btn hard"
-            :class="{ selected: currentDifficulty === 'hard' }"
-            @click="selectDifficulty('hard')"
-          >
-            Hard
-          </button>
-          <button
-            class="difficulty-btn mystery"
-            :class="{ selected: currentDifficulty === 'mystery' }"
-            @click="selectDifficulty('mystery')"
-          >
-            ?????
-          </button>
-        </div>
-        <div id="difficultyInfo" v-html="difficultyInfoText"></div>
-        </div>
-        
+          <h2>難易度を選択</h2>
+          <div class="difficulty-buttons">
+            <button
+              class="difficulty-btn normal"
+              :class="{ selected: currentDifficulty === 'normal' }"
+              @click="selectDifficulty('normal')"
+            >
+              Normal
+            </button>
+            <button
+              class="difficulty-btn hard"
+              :class="{ selected: currentDifficulty === 'hard' }"
+              @click="selectDifficulty('hard')"
+            >
+              Hard
+            </button>
+            <button
+              class="difficulty-btn mystery"
+              :class="{ selected: currentDifficulty === 'mystery' }"
+              @click="selectDifficulty('mystery')"
+            >
+              ?????
+            </button>
+          </div>
+          <div id="difficultyInfo" v-html="difficultyInfoText"></div>
+      </div>
+    </div>
+    <div class="game-container">
       <canvas ref="gameCanvas" width="400" height="500"></canvas>
     </div>
   </div>
@@ -41,20 +42,36 @@
 <script setup>
   import { ref, onMounted, onUnmounted, computed } from "vue";
 
-  const gameCanvas = ref(null);
-  let ctx = null;
+  // ゲーム定数
+  const WIDTH = 400;
+  const HEIGHT = 500;
+  const BALL_DIAMETER = 20;
+  const INITIAL_DX = 2;
+  const INITIAL_DY = 3;
 
+  //リアクティブ変数
+  const gameCanvas = ref(null);
   const currentDifficulty = ref(null);
   const score = ref(0);
   const gameOver = ref(false);
   const gameClear = ref(false);
   const waitingForStart = ref(false);
-  let gameStarted = false;
+  const gameStarted = ref(false);
 
-  let totalGoldBalls = 0;
-  let totalSilverBalls = 0;
+  //グローバル変数
+  let ctx = null;
+  let leftPressed = false;
+  let rightPressed = false;
+
+  //ゲームオブジェクト
+  let balls = [];
+  let paddle;
+  let blocks = [];
+
+  //Mystery難易度用変数
   let remainingGoldBalls = 0;
   let remainingSilverBalls = 0;
+  let nextSpeedUpScore = 100;
 
   class Ball {
     constructor(x, y, diameter, dx, dy, color, scoreValue = 10) {
@@ -68,6 +85,7 @@
       this.scoreValue = scoreValue;
       this.gameOver = false;
     }
+
     update(panelWidth, panelHeight) {
       this.x += this.dx;
       this.y += this.dy;
@@ -86,20 +104,24 @@
         this.gameOver = true;
       }
     }
+
     draw(ctx) {
       ctx.fillStyle = this.color;
       ctx.beginPath();
       ctx.arc(this.x + this.diameter / 2, this.y + this.diameter / 2, this.diameter / 2, 0, Math.PI * 2);
       ctx.fill();
     }
+
     getBounds() {
       return {x: this.x, y: this.y, width: this.diameter, height: this.diameter};
     }
+
     speedUp(factor) {
       this.dx *= factor;
       this.dy *= factor;
       this.baseSpeed = Math.sqrt(this.dx * this.dx + this.dy * this.dy);
     }
+
     setRandomSpeed() {
       const speedMultiplier = 0.5 + Math.random() * 2.5;
       const currentAngle = Math.atan2(this.dy, this.dx);
@@ -107,10 +129,12 @@
       this.dx = Math.cos(currentAngle) * newSpeed;
       this.dy = Math.sin(currentAngle) * newSpeed;
     }
+
     isGameOver() {
       return this.gameOver;
     }
   }
+
   class Paddle {
     constructor(x, y, width, height, color) {
       this.x = x;
@@ -120,20 +144,24 @@
       this.speed = 5;
       this.color = color;
     }
+
     moveLeft() {
       this.x -= this.speed;
     }
     moveRight() {
       this.x += this.speed;
     }
+
     draw(ctx) {
       ctx.fillStyle = this.color;
       ctx.fillRect(this.x, this.y, this.width, this.height);
     }
+
     getBounds() {
       return { x: this.x, y: this.y, width: this.width, height: this.height };
     }
   }
+
   class Block {
     constructor(x, y, width, height, color, isSplit = false) {
       this.x = x;
@@ -144,6 +172,7 @@
       this.color = color;
       this.isSplitBlock = isSplit;
     }
+
     draw(ctx) {
       if (!this.destroyed) {
         ctx.fillStyle = this.color;
@@ -152,25 +181,16 @@
         ctx.strokeRect(this.x, this.y, this.width, this.height);
       }
     }
+
     getBounds() {
       return { x: this.x, y: this.y, width: this.width, height: this.height };
     }
   }
 
-  let balls = [];
-  let paddle;
-  let blocks = [];
-  let nextSpeedUpScore = 100;
-  let leftPressed = false;
-  let rightPressed = false;
-  const WIDTH = 400;
-  const HEIGHT = 500;
-
   const difficultyInfoText = computed(() => {
     if (currentDifficulty.value === "normal") return "100点ごとに速度20%アップ";
     if (currentDifficulty.value === "hard") return "100点ごとに速度40%アップ！";
-    if (currentDifficulty.value === "mystery")
-      return "ブロックを壊すたびに速度がランダム変化！<br>さらに特定のブロックを壊すとボールが分裂！？<br>銀色ボール：30点、金色ボール：50点";
+    if (currentDifficulty.value === "mystery") return "速度がランダム変化！<br>さらにボールが分裂！？<br>銀色Ball：30点 金色Ball：50点";
     return "";
   });
 
@@ -185,19 +205,21 @@
 
   function selectDifficulty(difficulty) {
     currentDifficulty.value = difficulty;
-    if (!gameStarted) {
+    if (!gameStarted.value) {
       initGame();
-      gameStarted = true;
+      gameStarted.value = true;
     } else {
       initGame();
     }
   }
 
   function initGame() {
+    let totalGoldBalls = 0;
+    let totalSilverBalls = 0;
+
     if (!currentDifficulty.value) return;
 
     paddle = new Paddle(WIDTH / 2 - 50, HEIGHT - 40, 100, 10, "white");
-
     blocks = [];
 
     const defoultRows = 5;
@@ -206,7 +228,6 @@
     const rows = currentDifficulty.value === "mystery" ? mysteryRows 
                 : currentDifficulty.value === "hard" ? hardRows 
                 : defoultRows;
-
     const cols = 8;
     const blockWidth = 40, blockHeight = 20;
     const startX = 20, startY = 40;
@@ -234,7 +255,7 @@
         const randomIndex = Math.floor(Math.random() * totalBlocks);
         blocks[randomIndex].isSplitBlock = true;
       }
-    }else {
+    } else {
         balls = [new Ball(WIDTH / 2, HEIGHT / 2, 20, 2, 3, "white", 10)]; 
         remainingGoldBalls = 0;
         remainingSilverBalls = 0;
@@ -248,11 +269,11 @@
   }
 
   function gameLoop() {
-    if (!gameStarted || !currentDifficulty.value) {
+    if (!gameStarted.value || !currentDifficulty.value) {
         requestAnimationFrame(gameLoop);
         return;
     }
-    if (balls.length === 0 && gameStarted) {
+    if (balls.length === 0 && gameStarted.value) {
         gameOver.value = true;
     }
     if (gameOver.value || gameClear.value) {
@@ -273,7 +294,6 @@
     const newBalls = [];
 
     balls.forEach(ball => {
-      
       if (!waitingForStart.value) {
           ball.update(WIDTH, HEIGHT);
       }
@@ -289,6 +309,7 @@
       if (!waitingForStart.value) {
         for (let i = 0; i < blocks.length; i++) {
           let block = blocks[i];
+
           if (!block.destroyed && intersects(ball.getBounds(), block.getBounds())) {
             if (currentDifficulty.value === "mystery" && block.isSplitBlock) {
               const baseSpeed = Math.sqrt(ball.dx * ball.dx + ball.dy * ball.dy);
@@ -303,19 +324,18 @@
                 const rand = Math.random() * totalRemaining;
 
                 if (remainingGoldBalls > 0 && rand < remainingGoldBalls) {
-                    newColor = "gold";
-                    newScoreValue = 50;
-                    remainingGoldBalls--; 
-                    
+                  newColor = "gold";
+                  newScoreValue = 50;
+                  remainingGoldBalls--; 
+                  
                 } else if (remainingSilverBalls > 0 && rand < remainingGoldBalls + remainingSilverBalls) {
-                    newColor = "silver";
-                    newScoreValue = 30;
-                    remainingSilverBalls--;
+                  newColor = "silver";
+                  newScoreValue = 30;
+                  remainingSilverBalls--;
                 }
 
                 newSplits.push(new Ball(
-                    ball.x, ball.y, ballDiameter, 
-                    (i === 0 ? -1 : 1) * baseSpeed * 0.7, baseSpeed * 0.7, newColor, newScoreValue 
+                    ball.x, ball.y, ballDiameter, (j === 0 ? -1 : 1) * baseSpeed * 0.7, baseSpeed * 0.7, newColor, newScoreValue 
                 ));
               }
 
@@ -385,7 +405,7 @@
     blocks.forEach((block) => block.draw(ctx));
 
     ctx.fillStyle = "white";
-    ctx.font = "16px SansSerif";
+    ctx.font = "16px DotGothic16";
     ctx.fillText("Score: " + score.value, 10, 20);
 
     if (currentDifficulty.value) {
@@ -397,7 +417,7 @@
     }
 
     if (waitingForStart.value && !gameOver.value && !gameClear.value) {
-      ctx.font = "bold 24px SansSerif";
+      ctx.font = "bold 24px DotGothic16";
       ctx.fillStyle = "cyan";
       ctx.textAlign = "center";
       ctx.fillText("Press S to Start", WIDTH / 2, HEIGHT / 2);
@@ -405,21 +425,21 @@
     }
 
     if (gameOver.value) {
-      ctx.font = "bold 36px SansSerif";
+      ctx.font = "bold 36px DotGothic16";
       ctx.fillStyle = "white";
       ctx.textAlign = "center";
       ctx.fillText("GAME OVER", WIDTH / 2, HEIGHT / 2);
-      ctx.font = "18px SansSerif";
+      ctx.font = "18px DotGothic16";
       ctx.fillText("Press R to Retry", WIDTH / 2, HEIGHT / 2 + 40);
       ctx.textAlign = "left";
     }
 
     if (gameClear.value) {
-      ctx.font = "bold 36px SansSerif";
+      ctx.font = "bold 36px DotGothic16";
       ctx.fillStyle = "yellow";
       ctx.textAlign = "center";
       ctx.fillText("GAME CLEAR!", WIDTH / 2, HEIGHT / 2);
-      ctx.font = "18px SansSerif";
+      ctx.font = "18px DotGothic16";
       ctx.fillText("Press R to Retry", WIDTH / 2, HEIGHT / 2 + 40);
       ctx.textAlign = "left";
     }
@@ -471,9 +491,17 @@
     font-family: "DotGothic16";
   }
 
+  .left-sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 20px; 
+    margin-right: 50px; 
+    width: auto;
+    max-width: 300px;
+  }
+
   .home-link {
-    margin-right: 50px;
-    margin-top: 15px;
+    margin: 0;
     display: inline-block; 
   }
 
@@ -486,7 +514,7 @@
   }
 
   #difficultySelect {
-    margin-bottom: 0px;
+    margin-top: 0px;
     padding: 15px;
     background: #2a2a2a;
     border-radius: 8px;
