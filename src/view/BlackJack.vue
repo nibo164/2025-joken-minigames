@@ -3,7 +3,7 @@
     <h1>Blackjack</h1>
 
     <div class="hand">
-      <strong><span class = "dealer">ディーラー</span></strong>
+      <strong><span class="dealer">ディーラー</span></strong>
       <div class="cards">
         <div
           v-for="(c, i) in dealer"
@@ -18,7 +18,7 @@
     </div>
 
     <div class="hand">
-      <strong><span class = "player">プレイヤー</span></strong>
+      <strong><span class="player">プレイヤー</span></strong>
       <div class="cards">
         <div
           v-for="(c, i) in player"
@@ -39,7 +39,7 @@
       <button @click="resetGame">リセット</button>
     </div>
 
-    <div id="result">{{ result }}</div>
+    <div id="result" :class="resultColor">{{ result }}</div>
   </div>
 
   <div id="rule">
@@ -81,6 +81,7 @@ const dealer = ref([]);
 const dealerHidden = ref(false);
 
 const result = ref('');
+const resultColor = ref('');
 const dealDisabled = ref(false);
 const hitDisabled = ref(true);
 const standDisabled = ref(true);
@@ -131,24 +132,37 @@ function calcScore(hand) {
 function decideWinner() {
   const p = calcScore(player.value);
   const d = calcScore(dealer.value);
-  let msg = '';
 
-  if (p > 21) msg = 'バースト！ディーラーの勝ち';
-  else if (d > 21) msg = 'ディーラーがバースト！プレイヤーの勝ち';
-  else if (p === d) msg = '引き分け（プッシュ）';
-  else if (p === 21 && player.value.length === 2 && !(d === 21 && dealer.value.length === 2)) msg = 'ブラックジャック！プレイヤーの勝ち';
-  else if (d === 21 && dealer.value.length === 2 && !(p === 21 && player.value.length === 2)) msg = 'ディーラー ブラックジャック！';
-  else if (p > d) msg = 'プレイヤーの勝ち';
-  else msg = 'ディーラーの勝ち';
+  if (p > 21) {
+    result.value = 'バースト！ディーラーの勝ち';
+    resultColor.value = 'lose';
+  } else if (d > 21) {
+    result.value = 'ディーラーがバースト！プレイヤーの勝ち';
+    resultColor.value = 'win';
+  } else if (p === d) {
+    result.value = '引き分け（プッシュ）';
+    resultColor.value = 'draw';
+  } else if (p === 21 && player.value.length === 2 && !(d === 21 && dealer.value.length === 2)) {
+    result.value = 'ブラックジャック！プレイヤーの勝ち';
+    resultColor.value = 'win';
+  } else if (d === 21 && dealer.value.length === 2 && !(p === 21 && player.value.length === 2)) {
+    result.value = 'ディーラー ブラックジャック！';
+    resultColor.value = 'lose';
+  } else if (p > d) {
+    result.value = 'プレイヤーの勝ち';
+    resultColor.value = 'win';
+  } else {
+    result.value = 'ディーラーの勝ち';
+    resultColor.value = 'lose';
+  }
 
-  result.value = msg;
   dealDisabled.value = false;
 }
 
-// ディーラー自動プレイ
-function dealerPlay() {
+async function dealerPlay() {
   dealerHidden.value = false;
   while (calcScore(dealer.value) < 17){
+    await new Promise(r => setTimeout(r, 700));
     dealer.value.push(deck.value.pop());
   }
   decideWinner();
@@ -163,6 +177,7 @@ function deal() {
   player.value = [];
   dealer.value = [];
   result.value = '';
+  resultColor.value = '';
   dealerHidden.value = true;
 
   player.value.push(deck.value.pop());
@@ -177,6 +192,7 @@ function deal() {
   if (playerScore === 21) {
     dealerHidden.value = false;
     result.value = 'ブラックジャック！プレイヤーの勝ち！';
+    resultColor.value = 'win';
     hitDisabled.value = true;
     standDisabled.value = true;
     dealDisabled.value = false;
@@ -210,6 +226,7 @@ function resetGame() {
   dealer.value = [];
   dealerHidden.value = false;
   result.value = '';
+  resultColor.value = '';
   hitDisabled.value = true;
   standDisabled.value = true;
   dealDisabled.value = false;
@@ -259,10 +276,12 @@ h1 {
   min-width: 44px;
   text-align: center;
   background: #fff;
+  font-family: "Courier New", monospace;
+  font-size: 18px;
 }
 
 .red-suit {
-  color: red !important; /* !important は既存の .card スタイルより優先させるため */
+  color: red !important;
 }
 
 #controls {
@@ -282,7 +301,7 @@ button {
 }
 
 button:hover:not(:disabled) {
-  background: #afde52ff;
+  background: #9ed643;
 }
 
 button:disabled {
@@ -296,11 +315,28 @@ button:disabled {
   text-align: center;
   font-size: 1.4em;
   margin-bottom: 15px;
+  padding: 10px;
+  border-radius: 6px;
+}
+.win {
+  color: #2e8b57;
+}
+.lose {
+  color: #d9534f;
+}
+.draw {
+  color: #555;
 }
 
 #rule {
   text-align: left;
   padding: 20px;
   border: 1px solid #ccc;
+  border-radius: 10px;
+  background: #fff;
+  line-height: 1.6;
+  max-width: 600px;
+  margin: 30px auto;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
 }
 </style>
