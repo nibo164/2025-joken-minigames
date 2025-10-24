@@ -118,6 +118,7 @@ onUnmounted(() => {
   color: white;
   background-color: transparent;
   border: 2px solid white;
+  margin: 0;
 }
 
 #home_button_to_game:hover,
