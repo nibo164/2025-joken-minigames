@@ -1,14 +1,9 @@
 <template>
-  <router-link to="/">
+  <router-link to="/" class="home-link">
     <button>Homeへ遷移</button>
   </router-link>
   <div class="motion-game-container">
     <h2>モーショントラッキング STG</h2>
-    <div class="game-stats">
-      <p>HP: {{ playerHp }}</p>
-      <p>スコア: {{ score }}</p>
-      <p>フェーズ: {{ gamePhase === "grunt" ? "雑魚戦" : "ボス戦" }}</p>
-    </div>
 
     <button
       @click="startGame"
@@ -21,8 +16,6 @@
       }}
     </button>
     <p v-if="gameStatus === 'loading'">画像を読み込み中...</p>
-    <p v-if="gameStatus === 'win'" class="game-clear-message">GAME CLEAR!</p>
-    <p v-if="gameStatus === 'gameover'" class="game-over-message">GAME OVER</p>
 
     <div class="game-area">
       <video
@@ -42,9 +35,8 @@ import { ref, onMounted, onUnmounted } from "vue";
 import * as tf from "@tensorflow/tfjs";
 import "@tensorflow/tfjs-backend-webgl";
 import * as poseDetection from "@tensorflow-models/pose-detection";
-import type { Keypoint } from "@tensorflow-models/pose-detection";
 
-// --- 型定義 ---
+// 型定義
 interface Player {
   x: number;
   y: number;
@@ -102,48 +94,49 @@ interface EnemyBullet {
 type GameStatus = "loading" | "ready" | "playing" | "gameover" | "win";
 type GamePhase = "grunt" | "boss";
 
-// --- 定数 ---
-const GAME_WIDTH = 640;
-const GAME_HEIGHT = 480;
+// 定数
+const GAME_WIDTH = 960;
+const GAME_HEIGHT = 720;
 
 // Player
-const PLAYER_WIDTH = 30; // 画像の幅
-const PLAYER_HEIGHT = 30; // 画像の高さ
-const PLAYER_HITBOX_RADIUS = 10; // 当たり判定は小さめに設定
-const PLAYER_START_HP = 3;
-const SHOOT_COOLDOWN = 300;
-const SHOOT_THRESHOLD_DISTANCE = 50;
+const PLAYER_WIDTH = 60; // 画像の幅
+const PLAYER_HEIGHT = 60; // 画像の高さ
+const PLAYER_HITBOX_RADIUS = 20; // 当たり判定は小さめに設定
+const PLAYER_START_HP = 10;
+const SHOOT_COOLDOWN = 400;
+const PLAYER_HP_GAUGE_WIDTH = 60;
+const PLAYER_HP_GAUGE_HEIGHT = 60;
 
 // Bullet
-const BULLET_WIDTH = 10;
-const BULLET_HEIGHT = 10;
-const BULLET_HITBOX_RADIUS = 3;
+const BULLET_WIDTH = 20;
+const BULLET_HEIGHT = 20;
+const BULLET_HITBOX_RADIUS = 6;
 const BULLET_SPEED = 8;
 
 // Grunt (雑魚)
-const GRUNT_WIDTH = 30;
-const GRUNT_HEIGHT = 30;
-const GRUNT_HITBOX_RADIUS = 10;
+const GRUNT_WIDTH = 60;
+const GRUNT_HEIGHT = 60;
+const GRUNT_HITBOX_RADIUS = 20;
 const GRUNT_SPAWN_RATE = 0.02;
 const GRUNT_SPEED = 2;
 const GRUNT_HP = 1;
 const GRUNT_SHOOT_COOLDOWN = 2000;
 
 // Boss
-const BOSS_SCORE_THRESHOLD = 5; // テストのため低めに設定
-const BOSS_WIDTH = 150;
-const BOSS_HEIGHT = 75;
-const BOSS_START_HP = 100;
+const BOSS_SCORE_THRESHOLD = 10; // テストのため低めに設定
+const BOSS_WIDTH = 300;
+const BOSS_HEIGHT = 150;
+const BOSS_START_HP = 50;
 const BOSS_SPEED_X = 3;
 const BOSS_SHOOT_COOLDOWN = 1000;
 
 // Enemy Bullet
-const ENEMY_BULLET_WIDTH = 10;
-const ENEMY_BULLET_HEIGHT = 10;
-const ENEMY_BULLET_HITBOX_RADIUS = 3;
+const ENEMY_BULLET_WIDTH = 20;
+const ENEMY_BULLET_HEIGHT = 20;
+const ENEMY_BULLET_HITBOX_RADIUS = 6;
 const ENEMY_BULLET_SPEED = 3;
 
-// --- 画像アセットのパス ---
+// 画像アセットのパス
 // Vite の場合、public フォルダ直下なら /で始まるパスでアクセス可能
 const ASSET_PATHS = {
   player: "/images/player.png",
@@ -151,9 +144,10 @@ const ASSET_PATHS = {
   boss: "/images/boss.png",
   bullet: "/images/bullet.png",
   enemyBullet: "/images/enemy_bullet.png",
+  playerHPGauge: "images/gauge_heart.png",
 };
 
-// --- リアクティブな参照 ---
+// リアクティブな参照
 const videoRef = ref<HTMLVideoElement | null>(null);
 const canvasRef = ref<HTMLCanvasElement | null>(null);
 const ctxRef = ref<CanvasRenderingContext2D | null>(null);
@@ -162,14 +156,15 @@ const gamePhase = ref<GamePhase>("grunt");
 const score = ref(0);
 const playerHp = ref(PLAYER_START_HP);
 
-// --- Image オブジェクト用の ref ---
+// Image オブジェクト用の ref
 const playerImage = ref<HTMLImageElement | null>(null);
 const gruntImage = ref<HTMLImageElement | null>(null);
 const bossImage = ref<HTMLImageElement | null>(null);
 const bulletImage = ref<HTMLImageElement | null>(null);
 const enemyBulletImage = ref<HTMLImageElement | null>(null);
+const playerHPGaugeImage = ref<HTMLImageElement | null>(null);
 
-// --- ゲームロジック ---
+// ゲームロジック
 const player = ref<Player>({
   x: GAME_WIDTH / 2 - PLAYER_WIDTH / 2, // 画像の中心を合わせるために-width/2
   y: GAME_HEIGHT - PLAYER_HEIGHT - 20, // 画面下部に配置
@@ -188,7 +183,7 @@ let videoStream: MediaStream | null = null;
 let lastShotTime = 0;
 let entityIdCounter = 0;
 
-// --- 1. 初期化処理 (変更あり：画像読み込みを追加) ---
+// 初期化処理 (変更あり：画像読み込みを追加)
 onMounted(async () => {
   if (!videoRef.value || !canvasRef.value) return;
   canvasRef.value.width = GAME_WIDTH;
@@ -215,7 +210,7 @@ onMounted(async () => {
   }
 });
 
-// --- 画像のプリロード関数 (追加) ---
+// 画像のプリロード関数 (追加)
 const preloadImages = async () => {
   const loadImage = (src: string) => {
     return new Promise<HTMLImageElement>((resolve, reject) => {
@@ -232,6 +227,7 @@ const preloadImages = async () => {
     bossImage.value = await loadImage(ASSET_PATHS.boss);
     bulletImage.value = await loadImage(ASSET_PATHS.bullet);
     enemyBulletImage.value = await loadImage(ASSET_PATHS.enemyBullet);
+    playerHPGaugeImage.value = await loadImage(ASSET_PATHS.playerHPGauge);
     console.log("全ての画像が読み込まれました。");
   } catch (error) {
     console.error("画像の読み込みに失敗しました:", error);
@@ -239,9 +235,8 @@ const preloadImages = async () => {
   }
 };
 
-// --- 2. Webカメラのセットアップ (変更なし) ---
+// Webカメラのセットアップ
 const setupWebcam = async () => {
-  /* (前回のコードと同じ) */
   if (!videoRef.value) return;
   try {
     videoStream = await navigator.mediaDevices.getUserMedia({
@@ -260,7 +255,7 @@ const setupWebcam = async () => {
   }
 };
 
-// --- 3. MoveNetモデルの読み込み (変更なし) ---
+// MoveNetモデルの読み込み
 const loadMoveNetModel = async () => {
   /* (前回のコードと同じ) */
   const model = poseDetection.SupportedModels.MoveNet;
@@ -278,7 +273,7 @@ const loadMoveNetModel = async () => {
   console.log("ローカルのMoveNetモデルの読み込みが完了しました。");
 };
 
-// --- 4. ゲーム開始処理 (変更あり：プレイヤー初期位置) ---
+// ゲーム開始処理
 const startGame = () => {
   if (gameStatus.value === "playing" || !detector) return;
 
@@ -299,7 +294,7 @@ const startGame = () => {
   gameLoop();
 };
 
-// --- 5. 姿勢検出ループ (変更あり：プレイヤー位置のオフセット調整) ---
+// 姿勢検出ループ
 const detectPoseLoop = async () => {
   if (!detector || !videoRef.value) {
     if (gameStatus.value !== "gameover" && gameStatus.value !== "win")
@@ -316,9 +311,6 @@ const detectPoseLoop = async () => {
         player.value.x = GAME_WIDTH - nose.x - player.value.width / 2;
         player.value.y = nose.y - player.value.height / 2;
       }
-      if (gameStatus.value === "playing") {
-        checkShootingPose(keypoints);
-      }
     }
   } catch (error) {
     console.error("姿勢検出エラー:", error);
@@ -326,33 +318,8 @@ const detectPoseLoop = async () => {
   requestAnimationFrame(detectPoseLoop);
 };
 
-// --- 5-1. 射撃ポーズ判定 (変更なし) ---
-const checkShootingPose = (keypoints: Keypoint[]) => {
-  /* (前回のコードと同じ) */
-  const leftEar = keypoints[3];
-  const leftWrist = keypoints[9];
-  if (
-    leftEar.score &&
-    leftEar.score > 0.3 &&
-    leftWrist.score &&
-    leftWrist.score > 0.3
-  ) {
-    const earX = GAME_WIDTH - leftEar.x;
-    const earY = leftEar.y;
-    const wristX = GAME_WIDTH - leftWrist.x;
-    const wristY = leftWrist.y;
-    const distance = Math.sqrt(
-      Math.pow(wristX - earX, 2) + Math.pow(wristY - earY, 2)
-    );
-    if (distance < SHOOT_THRESHOLD_DISTANCE) {
-      shootBullet();
-    }
-  }
-};
-
-// --- 5-2. 射撃処理 (変更あり：弾の初期位置とサイズ) ---
-const shootBullet = () => {
-  const now = performance.now();
+// 射撃処理
+const shootBullet = (now: number) => {
   if (now - lastShotTime > SHOOT_COOLDOWN) {
     lastShotTime = now;
     bullets.value.push({
@@ -368,7 +335,7 @@ const shootBullet = () => {
   }
 };
 
-// --- 6. メインゲームループ (変更なし) ---
+// メインゲームループ
 const gameLoop = () => {
   if (gameStatus.value !== "playing") return;
 
@@ -382,8 +349,10 @@ const gameLoop = () => {
   }
 };
 
-// --- 7. ゲーム状態の更新 (変更あり：雑魚敵の初期位置、ボス出現位置) ---
+// ゲーム状態の更新
 const updateGameState = (now: number) => {
+  shootBullet(now);
+
   bullets.value = bullets.value
     .map((b) => ({ ...b, y: b.y - b.speed }))
     .filter((b) => b.y > -b.height); // heightを使用
@@ -443,7 +412,7 @@ const updateGameState = (now: number) => {
   }
 };
 
-// --- 7-1. 雑魚の射撃 (変更あり：弾の初期位置) ---
+// 雑魚の射撃
 const gruntShoot = (grunt: Grunt) => {
   const angle = Math.atan2(player.value.y - grunt.y, player.value.x - grunt.x);
 
@@ -459,7 +428,7 @@ const gruntShoot = (grunt: Grunt) => {
   });
 };
 
-// --- 7-2. ボス戦への移行 (変更なし) ---
+// ボス戦への移行
 const transitionToBoss = () => {
   gamePhase.value = "boss";
   grunts.value = [];
@@ -478,7 +447,7 @@ const transitionToBoss = () => {
   };
 };
 
-// --- 7-3. ボスの射撃 (変更あり：弾の初期位置) ---
+// ボスの射撃
 const bossShoot = (b: Boss) => {
   const bossCenterX = b.x + b.width / 2;
   const bossCenterY = b.y + b.height / 2;
@@ -504,7 +473,7 @@ const bossShoot = (b: Boss) => {
   });
 };
 
-// --- 8. Canvasの描画 (大幅変更：drawImage() を使用) ---
+// Canvasの描画
 const drawCanvas = () => {
   if (!ctxRef.value || !canvasRef.value) return;
   const ctx = ctxRef.value;
@@ -559,6 +528,34 @@ const drawCanvas = () => {
     ctx.fillRect(b.x, b.y - 20, b.width * (b.hp / b.maxHp), 10);
   }
 
+  //プレイヤーHP(画像とは関係なく描画)
+  for (let i = 0; i < playerHp.value; i++) {
+    if (playerHPGaugeImage.value) {
+      ctx.drawImage(
+        playerHPGaugeImage.value,
+        10 + i * 40,
+        10,
+        PLAYER_HP_GAUGE_WIDTH,
+        PLAYER_HP_GAUGE_HEIGHT
+      );
+    } else {
+      ctx.fillStyle = "pink";
+      ctx.fillRect(
+        10 + i * 40,
+        10,
+        PLAYER_HP_GAUGE_WIDTH,
+        PLAYER_HP_GAUGE_HEIGHT
+      );
+    }
+  }
+
+  // スコア表示(右上)
+  ctx.font = "40px DotGothic16";
+  ctx.fillStyle = "white";
+  ctx.textAlign = "right"; // 右揃え
+  ctx.textBaseline = "top"; // 上揃え
+  ctx.fillText("SCORE: " + score.value, GAME_WIDTH - 20, 10);
+
   // プレイヤーの弾
   if (bulletImage.value) {
     bullets.value.forEach((b) => {
@@ -582,11 +579,18 @@ const drawCanvas = () => {
       ctx.fillRect(b.x, b.y, b.width, b.height);
     });
   }
+
+  // ゲームオーバー・クリアメッセージ
+  if (gameStatus.value === "gameover") {
+    drawTextOverlay("GAME OVER", "red");
+  } else if (gameStatus.value === "win") {
+    drawTextOverlay("GAME CLEAR!", "gold");
+  }
 };
 
-// --- 9. 衝突判定 (変更あり：当たり判定の半径を使用) ---
+// 衝突判定
 const checkCollisions = () => {
-  // 9-1. プレイヤーの弾 vs 敵 (円同士の判定)
+  // プレイヤーの弾 vs 敵 (円同士の判定)
   for (const bullet of bullets.value) {
     // vs 雑魚
     for (const grunt of grunts.value) {
@@ -625,7 +629,7 @@ const checkCollisions = () => {
     }
   }
 
-  // 9-2. 敵の弾 vs プレイヤー (円同士の判定)
+  // 敵の弾 vs プレイヤー (円同士の判定)
   for (const enemyBullet of enemyBullets.value) {
     if (isColliding(enemyBullet, player.value)) {
       // 衝突判定に hitBoxRadius を使用
@@ -643,7 +647,7 @@ const checkCollisions = () => {
   }
 };
 
-// 9-3. 円同士の衝突判定ヘルパー (変更あり：hitboxRadius を使用)
+// 円同士の衝突判定ヘルパー
 const isColliding = (
   entityA: {
     x: number;
@@ -673,16 +677,31 @@ const isColliding = (
   return distance < entityA.hitboxRadius + entityB.hitboxRadius;
 };
 
-// --- 10. ゲームオーバー処理 (変更なし) ---
+const drawTextOverlay = (text: string, color: string) => {
+  if (!ctxRef.value) return;
+  const ctx = ctxRef.value;
+
+  ctx.font = "bold 80px DotGothic16"; //80pxの太字
+  ctx.fillStyle = color;
+  ctx.textAlign = "center"; //左右中央揃え
+  ctx.textBaseline = "middle"; //上下中央揃え
+
+  const x = GAME_WIDTH / 2;
+  const y = GAME_HEIGHT / 2;
+  ctx.fillText(text, x, y);
+};
+
+// ゲームオーバー処理
 const gameOver = () => {
   gameStatus.value = "gameover";
   if (animationFrameId) {
     cancelAnimationFrame(animationFrameId);
     animationFrameId = null;
   }
+  drawCanvas(); // 最終フレームを描画
 };
 
-// --- 10-1. ゲームクリア処理 (変更なし) ---
+// ゲームクリア処理 (変更なし)
 const gameWin = () => {
   gameStatus.value = "win";
   boss.value = null;
@@ -690,9 +709,10 @@ const gameWin = () => {
     cancelAnimationFrame(animationFrameId);
     animationFrameId = null;
   }
+  drawCanvas(); // 最終フレームを描画
 };
 
-// --- 11. クリーンアップ処理 (変更なし) ---
+// クリーンアップ処理 (変更なし)
 onUnmounted(() => {
   /* (前回のコードと同じ) */
   if (animationFrameId) {
@@ -708,7 +728,7 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-/* CSSは前回とほぼ同じですが、背景色を調整 */
+@import url("https://fonts.googleapis.com/css2?family=DotGothic16&display=swap");
 .motion-game-container {
   display: flex;
   flex-direction: column;
@@ -729,8 +749,8 @@ button {
 }
 .game-area {
   position: relative;
-  width: 640px;
-  height: 480px;
+  width: 960px;
+  height: 720px;
   border: 2px solid #333;
   background-color: #000; /* 黒背景 */
   overflow: hidden; /* 画像がはみ出さないように */
@@ -749,21 +769,10 @@ button {
   height: 100%;
   /* デバッグ用にカメラ映像を少し見せる場合は opacity: 0.5; などに */
 }
-.game-clear-message,
-.game-over-message {
-  font-size: 2rem;
-  font-weight: bold;
-  position: absolute; /* ゲームエリアの上に表示 */
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  z-index: 10;
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
-}
-.game-clear-message {
-  color: gold;
-}
-.game-over-message {
-  color: red;
+
+.home-link button {
+  font-family: "DotGothic16";
+  font-size: 2vh;
+  margin: 0;
 }
 </style>
