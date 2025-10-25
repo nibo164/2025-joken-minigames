@@ -102,7 +102,7 @@ const GAME_HEIGHT = 720;
 const PLAYER_WIDTH = 60; // 画像の幅
 const PLAYER_HEIGHT = 60; // 画像の高さ
 const PLAYER_HITBOX_RADIUS = 20; // 当たり判定は小さめに設定
-const PLAYER_START_HP = 10;
+const PLAYER_START_HP = 5;
 const SHOOT_COOLDOWN = 400;
 const PLAYER_HP_GAUGE_WIDTH = 60;
 const PLAYER_HP_GAUGE_HEIGHT = 60;
@@ -436,7 +436,7 @@ const transitionToBoss = () => {
 
   boss.value = {
     x: GAME_WIDTH / 2 - BOSS_WIDTH / 2, // 中央に配置
-    y: 50,
+    y: 100,
     width: BOSS_WIDTH,
     height: BOSS_HEIGHT,
     hp: BOSS_START_HP,
@@ -554,7 +554,15 @@ const drawCanvas = () => {
   ctx.fillStyle = "white";
   ctx.textAlign = "right"; // 右揃え
   ctx.textBaseline = "top"; // 上揃え
-  ctx.fillText("SCORE: " + score.value, GAME_WIDTH - 20, 10);
+  if (gamePhase.value === "grunt") {
+    ctx.fillText(
+      "ボス出現まで、あと " + (BOSS_SCORE_THRESHOLD - score.value),
+      GAME_WIDTH - 20,
+      10
+    );
+  } else {
+    ctx.fillText("ボスを倒せ！！", GAME_WIDTH - 20, 10);
+  }
 
   // プレイヤーの弾
   if (bulletImage.value) {
