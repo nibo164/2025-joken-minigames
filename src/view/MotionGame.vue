@@ -123,7 +123,7 @@ const GRUNT_HP = 1;
 const GRUNT_SHOOT_COOLDOWN = 2000;
 
 // Boss
-const BOSS_SCORE_THRESHOLD = 10; // テストのため低めに設定
+const BOSS_SCORE_THRESHOLD = 10;
 const BOSS_WIDTH = 300;
 const BOSS_HEIGHT = 150;
 const BOSS_START_HP = 50;

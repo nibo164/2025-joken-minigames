@@ -55,7 +55,7 @@ onUnmounted(() => {
     <div class="fluffy">
       <h1 id="home_h1">Welcome to Joken Minigames!</h1>
     </div>
-    <h2 id="home_h2">Select a game from the buttons below</h2>
+    <h2 id="home_h2">気になるゲームを自由にプレイ！</h2>
     <router-link to="/EvationGame">
       <button
         id="home_button_to_game"
