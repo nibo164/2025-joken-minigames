@@ -16,17 +16,24 @@ export default {
   setup() {
     const gameCanvas = ref(null);
     let canvas;
-    let ctx; // --- 定数 ---
+    let ctx;
 
+    // --- 定数 ---
     const PLAYER_SIZE = 10;
     const PLAYER_SPEED = 5;
-    const MAX_HP = 5; // 難易度制御の定数
+    const MAX_HP = 5;
     const INITIAL_ENEMY_SPAWN_INTERVAL = 30; // 難易度1の時のスポーン間隔 (フレーム数)
     const BASE_ENEMY_SPEED = 3; // 難易度1の時の基本敵スピード
     const INVULNERABILITY_TIME = 1000;
-    const SPECIAL_ATTACK_INTERVAL = 10000; // 10秒ごと (ミリ秒)
-    const SPECIAL_ATTACK_DURATION = 3000; // 必殺技の継続時間 (3秒) // --- リアクティブな状態と通常の変数 ---
 
+    // 必殺技の定数
+    const SPECIAL_ATTACK_INTERVAL = 10000; // 10秒ごと (ミリ秒)
+    const SPECIAL_ATTACK_DURATION = 3000; // 必殺技の継続時間 (3秒)
+    // ★ 必殺技のサイドごとの弾数ベース。ここを調整すると全体に影響します。
+    const BASE_BULLETS_PER_SIDE = 40;
+    // const SPECIAL_BULLET_SPEED = 3; // スピードはロジック内で使われますが、定数化しておきます
+
+    // --- リアクティブな状態と通常の変数 ---
     let playerX = ref(0);
     let playerY = ref(0);
     let playerHP = ref(MAX_HP);
@@ -54,8 +61,9 @@ export default {
 
     let timeUntilNextSpecial = ref(0);
 
-    let difficultyLevel = ref(1); // --- 関数定義 ---
+    let difficultyLevel = ref(1);
 
+    // --- 関数定義 ---
     const resizeCanvas = () => {
       if (!canvas) return;
       canvas.width = window.innerWidth;
@@ -156,8 +164,9 @@ export default {
       const secStr = String(seconds);
       const msStr = String(milliseconds).padStart(3, '0').slice(0, 3);
       return `${secStr}.${msStr}`;
-    }; // --- 描画関数 ---
+    };
 
+    // --- 描画関数 ---
     const drawPlayer = () => {
       const currentTime = Date.now();
       const isInvulnerable = currentTime - lastHitTime < INVULNERABILITY_TIME;
@@ -246,7 +255,7 @@ export default {
       ctx.font = '20px Arial';
       ctx.fillStyle = 'darkgreen';
       ctx.fillText(
-        '10秒ごとに画面上部からの必殺技発動！画面上部のカウントを確認しよう！',
+        '10秒ごとに画面上部からの必殺技発動！(Lv3, 6, 9で発射方向が増える)',
         canvas.width / 2,
         canvas.height / 2 + 90
       );
@@ -256,23 +265,13 @@ export default {
         canvas.width / 2,
         canvas.height / 2 + 120
       );
-      ctx.fillText(
-        '敵を避け続けて、できるだけ長く生き延びよう！',
-        canvas.width / 2,
-        canvas.height / 2 + 150
-      );
-      ctx.fillText(
-        '1,2,3分を超えると特別なメッセージが出てくるよ！',
-        canvas.width / 2,
-        canvas.height / 2 + 180
-      );
     };
 
     const drawGameOver = () => {
       ctx.font = '40px Arial';
       ctx.textAlign = 'center';
 
-      if (elapsedTime >= 180000) {
+      if (elapsedTime >= 120000) {
         ctx.fillStyle = 'gold';
         ctx.fillText(
           '制作者越えの強者現る！Σ(･ω･ﾉ)ﾉ！🏆✨',
@@ -282,7 +281,7 @@ export default {
         ctx.font = '36px Arial';
         ctx.fillStyle = 'red';
         ctx.fillText('GAME OVER', canvas.width / 2, canvas.height / 2);
-      } else if (elapsedTime >= 120000) {
+      } else if (elapsedTime >= 90000) {
         ctx.fillStyle = 'purple';
         ctx.fillText(
           '制作者もこれには✌(^O^)✌🏆',
@@ -326,8 +325,9 @@ export default {
         canvas.width / 2,
         canvas.height / 2 + restartYOffset
       );
-    }; // --- ゲームロジック ---
+    };
 
+    // --- ゲームロジック ---
     const movePlayer = () => {
       if (rightPressed && playerX.value < canvas.width - PLAYER_SIZE) {
         playerX.value += PLAYER_SPEED;
@@ -345,29 +345,83 @@ export default {
       isSpecialAttackActive.value = true;
       enemies.value = [];
 
-      const NUM_BULLETS = 60;
+      // ★ 修正点: 定数として定義したBASE_BULLETS_PER_SIDEを使用
+      // const NUM_BULLETS = 60; // 以前の値
       const SPECIAL_BULLET_SIZE = 5;
-      const SPECIAL_BULLET_SPEED = 7;
-      const startX = canvas.width / 2;
-      const startY = 0;
+      const SPECIAL_BULLET_SPEED = 3;
 
-      for (let i = 0; i < NUM_BULLETS; i++) {
-        const minAngle = (Math.PI * 1) / 12;
-        const maxAngle = (Math.PI * 11) / 12;
+      // レベルに応じて、発射するサイドを決定
+      const activeSides = [];
+      activeSides.push(0); // ベースは常に上から
 
-        const angle = minAngle + Math.random() * (maxAngle - minAngle);
+      const level = difficultyLevel.value;
 
-        const speed = SPECIAL_BULLET_SPEED + Math.random() * 2;
-
-        enemies.value.push({
-          x: startX,
-          y: startY,
-          size: SPECIAL_BULLET_SIZE,
-          speedX: Math.cos(angle) * speed,
-          speedY: Math.sin(angle) * speed,
-          type: 'special',
-        });
+      // レベル3以上で右を追加
+      if (level >= 3) {
+        activeSides.push(1);
       }
+      // レベル6以上で左を追加
+      if (level >= 6) {
+        activeSides.push(2);
+      }
+      // レベル9以上で下を追加
+      if (level >= 9) {
+        activeSides.push(3);
+      }
+
+      // 弾を生成
+      activeSides.forEach((side) => {
+        let startX, startY, minAngle, maxAngle;
+        let numBullets = BASE_BULLETS_PER_SIDE; // 各サイドの弾数の初期値
+
+        if (side === 0) {
+          // 上から下 (ベース数)
+          startX = canvas.width / 2;
+          startY = 0;
+          minAngle = (Math.PI * 1) / 12; // 15度
+          maxAngle = (Math.PI * 11) / 12; // 165度
+          numBullets = BASE_BULLETS_PER_SIDE;
+        } else if (side === 1) {
+          // 右から左 (レベル3で追加)
+          startX = canvas.width;
+          startY = canvas.height / 2;
+          minAngle = (Math.PI * 7) / 12; // 105度
+          maxAngle = (Math.PI * 17) / 12; // 255度
+          // ★ 左右の弾数をベースの75%に設定
+          numBullets = Math.floor(BASE_BULLETS_PER_SIDE * 0.75);
+        } else if (side === 2) {
+          // 左から右 (レベル6で追加)
+          startX = 0;
+          startY = canvas.height / 2;
+          minAngle = (Math.PI * -5) / 12; // -75度 (285度)
+          maxAngle = (Math.PI * 5) / 12; // 75度
+          // ★ 左右の弾数をベースの75%に設定
+          numBullets = Math.floor(BASE_BULLETS_PER_SIDE * 0.75);
+        } else if (side === 3) {
+          // 下から上 (レベル9で追加)
+          startX = canvas.width / 2;
+          startY = canvas.height;
+          minAngle = (Math.PI * 13) / 12; // 195度
+          maxAngle = (Math.PI * 23) / 12; // 345度
+          // ★ 下の弾数をベースの50%に設定
+          numBullets = Math.floor(BASE_BULLETS_PER_SIDE * 0.5);
+        }
+
+        // 各サイドで弾を生成
+        for (let i = 0; i < numBullets; i++) {
+          const angle = minAngle + Math.random() * (maxAngle - minAngle);
+          const speed = SPECIAL_BULLET_SPEED + Math.random() * 2;
+
+          enemies.value.push({
+            x: startX,
+            y: startY,
+            size: SPECIAL_BULLET_SIZE,
+            speedX: Math.cos(angle) * speed,
+            speedY: Math.sin(angle) * speed,
+            type: 'special',
+          });
+        }
+      });
 
       setTimeout(() => {
         isSpecialAttackActive.value = false;
@@ -398,6 +452,7 @@ export default {
         return;
       }
 
+      // 10秒ごとの必殺技チェック
       timeUntilNextSpecial.value = nextSpecialTime - now;
 
       if (now - specialAttackTimer > SPECIAL_ATTACK_INTERVAL) {
@@ -407,6 +462,7 @@ export default {
 
       if (frameCount % enemySpawnInterval === 0) {
         const rand = Math.random();
+        // 0:上から, 1:左から, 2:右から (上からの敵を多めに)
         const spawnSide = Math.floor(Math.random() * 3);
         let enemyData = {};
         const ENEMY_SIZE = 10;
@@ -415,6 +471,7 @@ export default {
           (BASE_ENEMY_SPEED + Math.random() * 3) * difficultyMultiplier;
 
         if (rand < 0.15) {
+          // 爆弾タイプの敵
           enemyData = {
             x: Math.random() * (canvas.width - 50),
             y: -50,
@@ -426,7 +483,9 @@ export default {
             hasExploded: false,
           };
         } else {
+          // 通常の敵
           if (spawnSide === 0) {
+            // 上から出現
             enemyData = {
               x: Math.random() * (canvas.width - ENEMY_SIZE),
               y: -ENEMY_SIZE,
@@ -436,20 +495,24 @@ export default {
               type: 'normal',
             };
           } else if (spawnSide === 1) {
+            // 左から出現 (縦移動を追加して安全地帯を解消)
+            const randomSpeedY = (Math.random() - 0.5) * ENEMY_SPEED * 0.5;
             enemyData = {
               x: -ENEMY_SIZE,
               y: Math.random() * (canvas.height - ENEMY_SIZE),
               size: ENEMY_SIZE,
               speedX: ENEMY_SPEED * 0.8,
-              speedY: 0,
+              speedY: randomSpeedY,
             };
           } else {
+            // 右から出現 (縦移動を追加して安全地帯を解消)
+            const randomSpeedY = (Math.random() - 0.5) * ENEMY_SPEED * 0.5;
             enemyData = {
               x: canvas.width,
               y: Math.random() * (canvas.height - ENEMY_SIZE),
               size: ENEMY_SIZE,
               speedX: -ENEMY_SPEED * 0.8,
-              speedY: 0,
+              speedY: randomSpeedY,
             };
           }
         }
@@ -479,7 +542,7 @@ export default {
                 currentEnemy.x + currentEnemy.size / 2 - 5 + Math.random() * 10,
               y: currentEnemy.y,
               size: 5 + Math.random() * 5,
-              speedX: 0,
+              speedX: (Math.random() - 0.5) * 5,
               speedY: 3 + Math.random() * 3,
               type: 'fragment',
             });
@@ -491,10 +554,13 @@ export default {
         }
 
         const isOutOfBoundsY =
-          currentEnemy.y > canvas.height || currentEnemy.y < -currentEnemy.size;
+          currentEnemy.y > canvas.height + 50 ||
+          currentEnemy.y < -currentEnemy.size - 50;
         const isOutOfBoundsX =
-          currentEnemy.x > canvas.width || currentEnemy.x < -currentEnemy.size;
+          currentEnemy.x > canvas.width + 50 ||
+          currentEnemy.x < -currentEnemy.size - 50;
 
+        // 敵が画面外に出たら削除
         if (isOutOfBoundsY || isOutOfBoundsX) {
           enemies.value.splice(i, 1);
           i--;
@@ -527,8 +593,9 @@ export default {
           break; // 衝突したらループを抜ける (1フレーム1ヒットを想定)
         }
       }
-    }; // --- メインゲームループ ---
+    };
 
+    // --- メインゲームループ ---
     const gameLoop = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -551,8 +618,9 @@ export default {
       }
 
       animationFrameId = requestAnimationFrame(gameLoop);
-    }; // --- ライフサイクルフック ---
+    };
 
+    // --- ライフサイクルフック ---
     onMounted(() => {
       canvas = gameCanvas.value;
       if (!canvas) return;
@@ -584,8 +652,6 @@ export default {
 /*
   【キャンバス表示エリアの設定】
   ゲームエリア全体を画面に固定し、キャンバスをその中に配置
-  position: fixed; と height: 100vh; / width: 100vw; により、
-  スクロールバーが表示されないようにしています。
 */
 .game-container {
   margin: 0;
