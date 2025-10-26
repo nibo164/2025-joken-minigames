@@ -19,7 +19,7 @@ export default {
     let ctx;
 
     // --- 定数 ---
-    const PLAYER_SIZE = 10;
+    const PLAYER_SIZE = 5;
     const PLAYER_SPEED = 5;
     const MAX_HP = 5;
     const INITIAL_ENEMY_SPAWN_INTERVAL = 30; // 難易度1の時のスポーン間隔 (フレーム数)
@@ -30,7 +30,7 @@ export default {
     const SPECIAL_ATTACK_INTERVAL = 10000; // 10秒ごと (ミリ秒)
     const SPECIAL_ATTACK_DURATION = 3000; // 必殺技の継続時間 (3秒)
     // ★ 必殺技のサイドごとの弾数ベース。ここを調整すると全体に影響します。
-    const BASE_BULLETS_PER_SIDE = 40;
+    const BASE_BULLETS_PER_SIDE = 60;
     // const SPECIAL_BULLET_SPEED = 3; // スピードはロジック内で使われますが、定数化しておきます
 
     // --- リアクティブな状態と通常の変数 ---
@@ -348,7 +348,7 @@ export default {
       // ★ 修正点: 定数として定義したBASE_BULLETS_PER_SIDEを使用
       // const NUM_BULLETS = 60; // 以前の値
       const SPECIAL_BULLET_SIZE = 5;
-      const SPECIAL_BULLET_SPEED = 3;
+      const SPECIAL_BULLET_SPEED = 3.5;
 
       // レベルに応じて、発射するサイドを決定
       const activeSides = [];
@@ -388,7 +388,7 @@ export default {
           minAngle = (Math.PI * 7) / 12; // 105度
           maxAngle = (Math.PI * 17) / 12; // 255度
           // ★ 左右の弾数をベースの75%に設定
-          numBullets = Math.floor(BASE_BULLETS_PER_SIDE * 0.75);
+          numBullets = Math.floor(BASE_BULLETS_PER_SIDE * 0.8);
         } else if (side === 2) {
           // 左から右 (レベル6で追加)
           startX = 0;
@@ -396,7 +396,7 @@ export default {
           minAngle = (Math.PI * -5) / 12; // -75度 (285度)
           maxAngle = (Math.PI * 5) / 12; // 75度
           // ★ 左右の弾数をベースの75%に設定
-          numBullets = Math.floor(BASE_BULLETS_PER_SIDE * 0.75);
+          numBullets = Math.floor(BASE_BULLETS_PER_SIDE * 0.8);
         } else if (side === 3) {
           // 下から上 (レベル9で追加)
           startX = canvas.width / 2;
