@@ -136,6 +136,9 @@ const ENEMY_BULLET_HEIGHT = 20;
 const ENEMY_BULLET_HITBOX_RADIUS = 6;
 const ENEMY_BULLET_SPEED = 3;
 
+// Boss出現アニメーション用
+const FLASH_TOTAL_DURATION = 700; //ミリ秒
+
 // 画像アセットのパス
 // Vite の場合、public フォルダ直下なら /で始まるパスでアクセス可能
 const ASSET_PATHS = {
@@ -155,6 +158,7 @@ const gameStatus = ref<GameStatus>("loading");
 const gamePhase = ref<GamePhase>("grunt");
 const score = ref(0);
 const playerHp = ref(PLAYER_START_HP);
+const flashDuration = ref(0);
 
 // Image オブジェクト用の ref
 const playerImage = ref<HTMLImageElement | null>(null);
@@ -182,6 +186,7 @@ let animationFrameId: number | null = null;
 let videoStream: MediaStream | null = null;
 let lastShotTime = 0;
 let entityIdCounter = 0;
+let lastFrameTime = 0; //1フレームあたりの経過時間計算用
 
 // 初期化処理 (変更あり：画像読み込みを追加)
 onMounted(async () => {
@@ -291,6 +296,7 @@ const startGame = () => {
   enemyBullets.value = [];
 
   gameStatus.value = "playing";
+  lastFrameTime = performance.now();
   gameLoop();
 };
 
@@ -340,7 +346,10 @@ const gameLoop = () => {
   if (gameStatus.value !== "playing") return;
 
   const now = performance.now();
-  updateGameState(now);
+  const deltaTime = now - lastFrameTime; //経過時間を計算
+  lastFrameTime = now; //最終フレーム時間を更新
+
+  updateGameState(now, deltaTime);
   drawCanvas();
   checkCollisions();
 
@@ -350,9 +359,16 @@ const gameLoop = () => {
 };
 
 // ゲーム状態の更新
-const updateGameState = (now: number) => {
+const updateGameState = (now: number, deltaTime: number) => {
   shootBullet(now);
 
+  //フラッシュアニメーションの更新
+  if (flashDuration.value > 0) {
+    flashDuration.value -= deltaTime;
+    if (flashDuration.value < 0) {
+      flashDuration.value = 0;
+    }
+  }
   bullets.value = bullets.value
     .map((b) => ({ ...b, y: b.y - b.speed }))
     .filter((b) => b.y > -b.height); // heightを使用
@@ -445,6 +461,8 @@ const transitionToBoss = () => {
     lastShotTime: performance.now(),
     shootCooldown: BOSS_SHOOT_COOLDOWN,
   };
+
+  flashDuration.value = FLASH_TOTAL_DURATION; //フラッシュアニメーションをトリガー
 };
 
 // ボスの射撃
@@ -586,6 +604,14 @@ const drawCanvas = () => {
     enemyBullets.value.forEach((b) => {
       ctx.fillRect(b.x, b.y, b.width, b.height);
     });
+  }
+
+  // フラッシュアニメーション
+  if (flashDuration.value > 0) {
+    //残り時間に応じて透明度計算(1から0へ)
+    const opacity = flashDuration.value / FLASH_TOTAL_DURATION;
+    ctx.fillStyle = `rgba(255, 255, 255, ${opacity})`;
+    ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
   }
 
   // ゲームオーバー・クリアメッセージ
