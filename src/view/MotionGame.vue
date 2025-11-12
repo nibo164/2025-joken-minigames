@@ -310,12 +310,15 @@ const detectPoseLoop = async () => {
   try {
     const poses = await detector.estimatePoses(videoRef.value);
     if (poses && poses.length > 0) {
-      const keypoints = poses[0].keypoints;
-      const nose = keypoints[0];
-      if (nose && nose.score && nose.score > 0.3) {
-        // 画像の中心が鼻のキーポイントに合うようにオフセットを調整
-        player.value.x = GAME_WIDTH - nose.x - player.value.width / 2;
-        player.value.y = nose.y - player.value.height / 2;
+      const firstPose = poses[0];
+      if (firstPose) {
+        const keypoints = firstPose.keypoints;
+        const nose = keypoints[0];
+        if (nose && nose.score && nose.score > 0.3) {
+          // 画像の中心が鼻のキーポイントに合うようにオフセットを調整
+          player.value.x = GAME_WIDTH - nose.x - player.value.width / 2;
+          player.value.y = nose.y - player.value.height / 2;
+        }
       }
     }
   } catch (error) {
