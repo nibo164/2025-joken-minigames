@@ -139,15 +139,17 @@ const ENEMY_BULLET_SPEED = 3;
 // Boss出現アニメーション用
 const FLASH_TOTAL_DURATION = 700; //ミリ秒
 
+// ViteのBASE_URLを取得(ローカルの場合：'/'、GitHub Pagesの場合：'/<リポジトリ名>/')
+const BASE_URL = import.meta.env.BASE_URL;
+
 // 画像アセットのパス
-// Vite の場合、public フォルダ直下なら /で始まるパスでアクセス可能
 const ASSET_PATHS = {
-  player: "/images/player.png",
-  grunt: "/images/grunt.png",
-  boss: "/images/boss.png",
-  bullet: "/images/bullet.png",
-  enemyBullet: "/images/enemy_bullet.png",
-  playerHPGauge: "images/gauge_heart.png",
+  player: `${BASE_URL}images/player.png`,
+  grunt: `${BASE_URL}images/grunt.png`,
+  boss: `${BASE_URL}images/boss.png`,
+  bullet: `${BASE_URL}images/bullet.png`,
+  enemyBullet: `${BASE_URL}images/enemy_bullet.png`,
+  playerHPGauge: `${BASE_URL}images/gauge_heart.png`,
 };
 
 // リアクティブな参照
