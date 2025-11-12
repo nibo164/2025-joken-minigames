@@ -5,4 +5,7 @@ import vue from "@vitejs/plugin-vue";
 export default defineConfig({
   plugins: [vue()],
   base: "/2025-joken-minigames/",
+  build: {
+    outDir: "docs",
+  },
 });
