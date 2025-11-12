@@ -268,7 +268,7 @@ const loadMoveNetModel = async () => {
   const model = poseDetection.SupportedModels.MoveNet;
 
   // public フォルダに置いたモデルのパスを指定
-  const modelUrl = "/movenet-model/model.json";
+  const modelUrl = `${BASE_URL}movenet-model/model.json`;
 
   const detectorConfig: poseDetection.MoveNetModelConfig = {
     modelType: poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING,
